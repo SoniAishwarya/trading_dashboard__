@@ -5,14 +5,10 @@ from .models import Trade
 balance = 10000
 portfolio = {}
 
-
-from django.contrib.auth.decorators import login_required
-
-
 def home(request):
     global balance, portfolio
 
-    stock_price = None  # पहले define करो
+    stock_price = None
 
     if request.method == "POST":
         stock = request.POST.get("stock")
@@ -29,7 +25,7 @@ def home(request):
         stock_price = price
         total = quantity * price
 
-        # BUY
+        # ✅ BUY
         if action == "buy":
             if balance >= total:
                 balance -= total
@@ -42,13 +38,28 @@ def home(request):
                     trade_type="BUY"
                 )
 
-        # SELL
+        # ✅ SELL
         elif action == "sell":
             if portfolio.get(stock, 0) >= quantity:
                 balance += total
                 portfolio[stock] -= quantity
 
-                profit = quantity * 10  # (temporary)
+                # 🔥 अगर 0 हो गया तो remove करो
+                if portfolio[stock] == 0:
+                    del portfolio[stock]
+
+                # 🔥 last buy price
+                buy_trade = Trade.objects.filter(
+                    stock=stock, trade_type="BUY"
+                ).order_by('-date').first()
+
+                if buy_trade:
+                    buy_price = buy_trade.price
+                else:
+                    buy_price = price
+
+                profit = (price - buy_price) * quantity
+
                 Trade.objects.create(
                     stock=stock,
                     quantity=quantity,
@@ -59,12 +70,22 @@ def home(request):
 
     trades = Trade.objects.all().order_by('-date')
     total_profit = sum(t.profit for t in trades)
-    portfolio_value = sum(qty * 100 for qty in portfolio.values())
+
+    # 🔥 LIVE portfolio value
+    portfolio_value = 0
+    for stock, qty in portfolio.items():
+        data = yf.Ticker(stock)
+        try:
+            live_price = data.info.get("regularMarketPrice", 100)
+        except:
+            live_price = 100
+
+        portfolio_value += live_price * qty
+
     return render(request, 'home.html', {
         'balance': balance,
         'trades': trades,
         'profit': total_profit,
-        'stock_price': stock_price ,  # ✅ FIX
+        'stock_price': stock_price,
         'portfolio_value': portfolio_value
-
     })

@@ -40,7 +40,9 @@
         <div class="col-md-4">
             <div class="card bg-primary p-3">
                 <h5>Profit</h5>
-                <h3>₹{{ profit }}</h3>
+                <h3 style="color: {% if profit > 0 %}lime{% else %}red{% endif %};">
+    ₹{{ profit }}
+</h3>
             </div>
         </div>
 
@@ -116,7 +118,7 @@ new Chart(ctx, {
         labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
         datasets: [{
             label: 'Stock Price',
-            data: [100, 120, 90, 140, 130],
+            data: [{{ stock_price|default:0 }}, {{ stock_price|default:0 }}, {{ stock_price|default:0 }}],
             borderWidth: 2
         }]
     }
